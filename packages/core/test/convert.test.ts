@@ -70,12 +70,12 @@ describe('pitch -> tab fingering', () => {
       expect(ev.notes.every((n) => n.fret >= 0 && n.fret <= 24)).toBe(true);
     }
     expect(formatTab(tab).split('\n').slice(0, 6)).toEqual([
-      'e|-0-0-0-|',
-      'B|-1-2-0-|',
-      'G|-0-2-1-|',
-      'D|-2-2-2-|',
-      'A|-3-0-2-|',
-      'E|-----0-|',
+      'e|-0--0--0--|',
+      'B|-1--2--0--|',
+      'G|-0--2--1--|',
+      'D|-2--2--2--|',
+      'A|-3--0--2--|',
+      'E|-------0--|',
     ]);
   });
 

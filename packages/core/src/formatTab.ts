@@ -32,9 +32,9 @@ export function formatTab(tab: Tab, opts: FormatTabOptions = {}): string {
           return note ? `${note.fret}${note.articulation ?? ''}` : '';
         });
         const w = Math.max(1, ...cells.map((x) => x.length));
-        for (let s = 0; s < n; s++) rows[s] += cells[s].padEnd(w, '-') + '-';
+        for (let s = 0; s < n; s++) rows[s] += cells[s].padEnd(w, '-') + '--';
         const mark = !prev || !sameDur(prev, ev.duration) ? RHYTHM_LETTER[ev.duration.type] + (ev.duration.dots ? '.' : '') : '';
-        rhythm += mark.padEnd(w + 1, ' ');
+        rhythm += mark.padEnd(w + 2, ' ');
         prev = ev.duration;
       }
       for (let s = 0; s < n; s++) rows[s] += '|';
