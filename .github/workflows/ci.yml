@@ -41,3 +41,5 @@ jobs:
       - run: npm run build
       - name: Web smoke test (local mode, headless Chrome)
         run: npm run smoke
+      - name: Android notation WebView page (headless Chrome)
+        run: npm run smoke:notation
