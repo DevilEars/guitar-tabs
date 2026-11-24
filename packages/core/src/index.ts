@@ -7,3 +7,4 @@ export * from './convert';
 export * from './fingering';
 export * from './musicxml';
 export * from './midi';
+export * from './wav';

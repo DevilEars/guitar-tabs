@@ -31,7 +31,15 @@
       "baseUrl": "/guitar-tabs"
     },
     "plugins": [
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-audio",
+        {
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ]
     ],
     "scheme": "guitartabs"
   }
