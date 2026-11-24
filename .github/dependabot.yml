@@ -2,12 +2,15 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: /
-    schedule:
-      interval: weekly
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
     groups:
-      npm-minor-patch:
+      npm-minor-and-patch:
         update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
-    schedule:
-      interval: weekly
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-and-patch:
+        update-types: [minor, patch]
