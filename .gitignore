@@ -6,3 +6,21 @@ web-build/
 .DS_Store
 android/
 ios/
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.keystore
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+
+# Tooling
+coverage/
+.expo-shared/
+.vscode/
+.idea/
