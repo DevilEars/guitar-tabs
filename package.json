@@ -1,10 +1,16 @@
 {
   "name": "guitar-tabs",
   "private": true,
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "test": "npm run test -w @guitar-tabs/core",
     "typecheck": "npm run typecheck -w @guitar-tabs/core && npm run typecheck -w app",
     "web:export": "npm run export:web -w app"
+  },
+  "engines": {
+    "node": ">=26"
   }
 }
