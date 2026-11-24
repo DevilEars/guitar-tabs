@@ -1,6 +1,10 @@
 import type { KeyValueStore, LocalTabDoc, TabDoc } from './types';
 
-export const STORAGE_KEY = 'guitar-tabs:library:v1';
+/** v1: everything in one JSON value (kept only to migrate old installs). */
+export const LEGACY_STORAGE_KEY = 'guitar-tabs:library:v1';
+/** v2: small index (ids + meta) plus one value per tab. */
+export const INDEX_KEY = 'guitar-tabs:index:v2';
+export const docKey = (id: string) => `guitar-tabs:doc:${id}`;
 export const DEFAULT_TUNING = [64, 59, 55, 50, 45, 40];
 
 export interface RepositoryOptions {
@@ -18,9 +22,15 @@ export interface NewTab {
 
 export type TabPatch = Partial<Pick<TabDoc, 'title' | 'artist' | 'tuning' | 'tempo' | 'content'>>;
 
-interface Stored {
+interface LegacyStored {
   version: 1;
   docs: Record<string, LocalTabDoc>;
+  meta: Record<string, string>;
+}
+
+interface StoredIndex {
+  version: 2;
+  ids: string[];
   meta: Record<string, string>;
 }
 
@@ -38,8 +48,10 @@ function monotonic(now: () => string): () => string {
 }
 
 /**
- * Local-first tab store. Everything lives in memory and is written through to a key/value store as one
- * JSON document (AsyncStorage on Android, localStorage on web). Works signed-out and offline.
+ * Local-first tab store. Everything lives in memory and is written through to a key/value store
+ * (AsyncStorage on Android, localStorage on web): one value per tab plus a small index. Storing per tab keeps
+ * every value well under Android AsyncStorage's ~2 MB-per-row limit (SQLite CursorWindow), which a single
+ * JSON value for the whole library would hit. Works signed-out and offline.
  */
 export class TabRepository {
   private docs = new Map<string, LocalTabDoc>();
@@ -56,11 +68,26 @@ export class TabRepository {
 
   static async open(kv: KeyValueStore, opts: RepositoryOptions = {}): Promise<TabRepository> {
     const repo = new TabRepository(kv, opts);
-    const raw = await kv.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Stored;
+    const rawIndex = await kv.getItem(INDEX_KEY);
+    if (rawIndex) {
+      const index = JSON.parse(rawIndex) as StoredIndex;
+      for (const [k, v] of Object.entries(index.meta ?? {})) repo.meta.set(k, v);
+      const values = await Promise.all(index.ids.map((id) => kv.getItem(docKey(id))));
+      values.forEach((raw) => {
+        if (!raw) return;
+        const d = JSON.parse(raw) as LocalTabDoc;
+        repo.docs.set(d.id, d);
+      });
+      return repo;
+    }
+    const legacy = await kv.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) {
+      const parsed = JSON.parse(legacy) as LegacyStored;
       for (const d of Object.values(parsed.docs ?? {})) repo.docs.set(d.id, d);
       for (const [k, v] of Object.entries(parsed.meta ?? {})) repo.meta.set(k, v);
+      await repo.persist(repo.docs.keys());
+      await repo.flush();
+      await kv.removeItem(LEGACY_STORAGE_KEY);
     }
     return repo;
   }
@@ -75,10 +102,22 @@ export class TabRepository {
     return this.writing;
   }
 
-  private persist(): Promise<void> {
-    const snapshot: Stored = { version: 1, docs: Object.fromEntries(this.docs), meta: Object.fromEntries(this.meta) };
-    const json = JSON.stringify(snapshot);
-    this.writing = this.writing.then(() => this.kv.setItem(STORAGE_KEY, json));
+  /** Write the given tabs (or delete their values if they're gone) and the index. Writes are serialised. */
+  private persist(changed: Iterable<string> = []): Promise<void> {
+    const writes: [string, string | null][] = [...new Set(changed)].map((id) => {
+      const d = this.docs.get(id);
+      return [docKey(id), d ? JSON.stringify(d) : null];
+    });
+    const index: StoredIndex = { version: 2, ids: [...this.docs.keys()], meta: Object.fromEntries(this.meta) };
+    const indexJson = JSON.stringify(index);
+    this.writing = this.writing.then(async () => {
+      // Docs first, index last: a crash in between leaves at worst an unreferenced value, never a dangling id.
+      for (const [key, value] of writes) {
+        if (value === null) await this.kv.removeItem(key);
+        else await this.kv.setItem(key, value);
+      }
+      await this.kv.setItem(INDEX_KEY, indexJson);
+    });
     this.listeners.forEach((l) => l());
     return this.writing;
   }
@@ -119,7 +158,7 @@ export class TabRepository {
       synced_at: null,
     };
     this.docs.set(doc.id, doc);
-    await this.persist();
+    await this.persist([doc.id]);
     return doc;
   }
 
@@ -129,7 +168,7 @@ export class TabRepository {
     const next: LocalTabDoc = { ...d, ...patch, updated_at: this.now(), dirty: true };
     if (patch.title !== undefined) next.title = patch.title.trim() || 'Untitled tab';
     this.docs.set(id, next);
-    await this.persist();
+    await this.persist([id]);
     return next;
   }
 
@@ -149,7 +188,7 @@ export class TabRepository {
       const t = this.now();
       this.docs.set(id, { ...d, deleted_at: t, updated_at: t, dirty: true });
     }
-    await this.persist();
+    await this.persist([id]);
   }
 
   /** Unowned (signed-out) tabs that could be uploaded to an account. */
@@ -161,7 +200,7 @@ export class TabRepository {
   async claimUnowned(ownerId: string): Promise<number> {
     const list = this.unowned();
     for (const d of list) this.docs.set(d.id, { ...d, owner_id: ownerId, dirty: true });
-    if (list.length) await this.persist();
+    if (list.length) await this.persist(list.map((d) => d.id));
     return list.length;
   }
 
@@ -170,20 +209,20 @@ export class TabRepository {
   /** Replace/insert docs with server versions (clean). */
   async applyRemote(docs: TabDoc[], ownerId: string): Promise<void> {
     for (const r of docs) this.docs.set(r.id, { ...r, owner_id: ownerId, dirty: false, synced_at: r.updated_at });
-    if (docs.length) await this.persist();
+    if (docs.length) await this.persist(docs.map((d) => d.id));
   }
 
   /** Mark pushed docs clean, unless they were edited again while the push was in flight. */
   async markPushed(pushed: TabDoc[]): Promise<void> {
-    let changed = false;
+    const changed: string[] = [];
     for (const p of pushed) {
       const d = this.docs.get(p.id);
       if (d && d.updated_at === p.updated_at) {
         this.docs.set(p.id, { ...d, dirty: false, synced_at: p.updated_at });
-        changed = true;
+        changed.push(p.id);
       }
     }
-    if (changed) await this.persist();
+    if (changed.length) await this.persist(changed);
   }
 
   getMeta(key: string): string | undefined {
@@ -192,7 +231,7 @@ export class TabRepository {
 
   async setMeta(key: string, value: string): Promise<void> {
     this.meta.set(key, value);
-    await this.persist();
+    await this.persist([]);
   }
 
   // ---- backup ----
@@ -207,19 +246,22 @@ export class TabRepository {
     const parsed = JSON.parse(json);
     if (parsed?.format !== 'guitar-tabs-backup' || !Array.isArray(parsed.tabs)) throw new Error('Not a Guitar Tabs backup file');
     let added = 0, updated = 0, skipped = 0;
+    const changed: string[] = [];
     for (const raw of parsed.tabs as TabDoc[]) {
       if (typeof raw?.id !== 'string' || typeof raw.content !== 'string') { skipped++; continue; }
       const cur = this.docs.get(raw.id);
       const doc = normalize(raw);
       if (!cur) {
         this.docs.set(doc.id, { ...doc, owner_id: ownerId, dirty: true, synced_at: null });
+        changed.push(doc.id);
         added++;
       } else if (ts(doc.updated_at) > ts(cur.updated_at)) {
         this.docs.set(doc.id, { ...cur, ...doc, dirty: true });
+        changed.push(doc.id);
         updated++;
       } else skipped++;
     }
-    await this.persist();
+    await this.persist(changed);
     return { added, updated, skipped };
   }
 }

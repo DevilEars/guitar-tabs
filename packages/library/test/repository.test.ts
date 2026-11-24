@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MemoryKeyValueStore, STORAGE_KEY, TabRepository } from '../src';
+import { INDEX_KEY, LEGACY_STORAGE_KEY, MemoryKeyValueStore, TabRepository, docKey, type KeyValueStore } from '../src';
 import { clock, openRepo, uuid } from './helpers';
 
 describe('TabRepository', () => {
@@ -14,7 +14,10 @@ describe('TabRepository', () => {
     const again = await TabRepository.open(kv, { uuid });
     expect(again.get(a.id)?.content).toBe('e|-0-|');
     expect(again.get(b.id)?.artist).toBe('Band');
-    expect(JSON.parse((await kv.getItem(STORAGE_KEY))!).version).toBe(1);
+    const index = JSON.parse((await kv.getItem(INDEX_KEY))!);
+    expect(index.version).toBe(2);
+    expect(index.ids.sort()).toEqual([a.id, b.id].sort());
+    expect(JSON.parse((await kv.getItem(docKey(a.id)))!).content).toBe('e|-0-|');
   });
 
   it('renames/updates with a newer updated_at and blank titles fall back', async () => {
@@ -103,5 +106,44 @@ describe('TabRepository', () => {
     off();
     await repo.create({});
     expect(calls).toBe(1);
+  });
+
+  it('stores one value per tab so no value hits the Android ~2 MB row limit', async () => {
+    // Fake AsyncStorage-on-Android: rejects values over 2 MB like SQLiteBlobTooBigException / CursorWindow.
+    const limited = new MemoryKeyValueStore();
+    const strict: KeyValueStore = {
+      getItem: (k) => limited.getItem(k),
+      removeItem: (k) => limited.removeItem(k),
+      setItem: async (k, v) => { if (v.length > 2 * 1024 * 1024) throw new Error('Row too big to fit into CursorWindow'); return limited.setItem(k, v); },
+    };
+    const repo = await TabRepository.open(strict, { uuid });
+    const big = 'e|' + '-'.repeat(900 * 1024) + '|';
+    for (let i = 0; i < 4; i++) await repo.create({ title: `big ${i}`, content: big }); // ~3.6 MB total
+    await repo.flush();
+    const again = await TabRepository.open(strict, { uuid });
+    expect(again.list(null)).toHaveLength(4);
+    expect(Math.max(...[...limited.data.values()].map((v) => v.length))).toBeLessThan(2 * 1024 * 1024);
+  });
+
+  it('removes the stored value when a never-synced tab is deleted', async () => {
+    const { repo, kv } = await openRepo();
+    const d = await repo.create({ title: 'gone' });
+    await repo.remove(d.id);
+    await repo.flush();
+    expect(await kv.getItem(docKey(d.id))).toBeNull();
+    expect(JSON.parse((await kv.getItem(INDEX_KEY))!).ids).toEqual([]);
+  });
+
+  it('migrates a v1 single-value library to per-tab storage', async () => {
+    const kv = new MemoryKeyValueStore();
+    const doc = { id: 'old-1', title: 'Old tab', artist: '', tuning: [], tempo: 100, content: 'x', created_at: '2026-01-01T00:00:00.000Z', updated_at: '2026-01-01T00:00:00.000Z', deleted_at: null, owner_id: null, dirty: true, synced_at: null };
+    await kv.setItem(LEGACY_STORAGE_KEY, JSON.stringify({ version: 1, docs: { 'old-1': doc }, meta: { 'uploadPrompt:u1': 'declined' } }));
+    const repo = await TabRepository.open(kv, { uuid });
+    expect(repo.get('old-1')?.title).toBe('Old tab');
+    expect(repo.getMeta('uploadPrompt:u1')).toBe('declined');
+    expect(await kv.getItem(LEGACY_STORAGE_KEY)).toBeNull();
+    expect(await kv.getItem(docKey('old-1'))).not.toBeNull();
+    const again = await TabRepository.open(kv, { uuid });
+    expect(again.get('old-1')?.title).toBe('Old tab');
   });
 });

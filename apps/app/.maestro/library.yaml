@@ -1,0 +1,55 @@
+# Android end-to-end flow for the tab library (local mode, no Supabase env).
+# NOT YET RUN: written when the box emulator could not get KVM. Run with:
+#   maestro test apps/app/.maestro/library.yaml
+appId: com.devilears.guitartabs
+---
+- launchApp:
+    clearState: true
+- assertVisible: "No tabs yet"
+- takeScreenshot: android-01-empty-library
+- tapOn:
+    id: "new-tab"
+- tapOn:
+    id: "title-input"
+- eraseText: 40
+- inputText: "Maestro Riff"
+- tapOn:
+    id: "tab-input"
+- eraseText: 200
+- inputText: "e|-0-3-5-|"
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Saved.*"
+    timeout: 5000
+- takeScreenshot: android-02-editor
+# Autosave survives an app restart
+- stopApp
+- launchApp
+- assertVisible: "Maestro Riff"
+- tapOn:
+    id: "open-tab"
+- assertVisible: "e|-0-3-5-|"
+- back
+# Rename
+- tapOn:
+    id: "rename"
+- tapOn:
+    id: "prompt-input"
+- eraseText: 40
+- inputText: "Renamed Riff"
+- tapOn:
+    id: "prompt-ok"
+- assertVisible: "Renamed Riff"
+- takeScreenshot: android-03-renamed
+# Account screen in local mode
+- tapOn:
+    id: "account-button"
+- assertVisible: "Sign in unavailable"
+- takeScreenshot: android-04-signin-unavailable
+- back
+# Delete (native confirm dialog)
+- tapOn:
+    id: "delete"
+- tapOn: "Delete"
+- assertVisible: "No tabs yet"
+- takeScreenshot: android-05-deleted
