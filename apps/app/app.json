@@ -24,6 +24,10 @@
     },
     "experiments": {
       "baseUrl": "/guitar-tabs"
-    }
+    },
+    "plugins": [
+      "expo-sharing"
+    ],
+    "scheme": "guitartabs"
   }
 }
