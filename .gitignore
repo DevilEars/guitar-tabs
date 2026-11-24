@@ -29,3 +29,6 @@ keystore.properties
 *.pfx
 *.tsbuildinfo
 smoke-*.png
+
+# Generated
+apps/app/src/notation/*.generated.ts

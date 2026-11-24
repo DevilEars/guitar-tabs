@@ -12,7 +12,7 @@ packages/library   @guitar-tabs/library: local-first tab repository + last-write
 apps/app           Expo app (web + Android): tab library, editor with autosave, account/sync screen
 supabase/          Postgres migration (tabs table + Row Level Security)
 docs/              supabase-setup.md: how to turn on sign-in and sync
-scripts/           web smoke test (headless Chrome), migration/RLS check (PGlite)
+scripts/           web smoke test + Android notation page test (headless Chrome), migration/RLS check (PGlite), notation page generator
 ```
 
 ## Tab library and sync
@@ -33,6 +33,7 @@ npm test                                   # core + library unit tests (Vitest)
 npm run typecheck                          # core + library + app
 npm run test:sql                           # migration + RLS check on in-process Postgres
 npm run build && npm run smoke             # web export + headless-Chrome smoke test (local mode)
+npm run smoke:notation                     # Android notation WebView page in headless Chrome
 cd apps/app && npx expo start --web        # dev server
 cd apps/app && npx expo export --platform web   # static web build in apps/app/dist
 ```
@@ -78,7 +79,7 @@ are dropped with a warning. `respectHints` keeps string/fret positions carried f
 | Tab library, autosave, import/export, JSON backup | yes | bundles; not run on a device |
 | Sign-in + sync (Supabase) | built; needs a Supabase project | built; needs a project; not run on a device |
 | Tab editor, parse, convert back to tab | yes | bundles; not run on a device |
-| Staff notation (VexFlow) | yes | not yet (shows pitch names as text) |
+| Staff notation (VexFlow) | yes | yes, in a WebView (VexFlow + Bravura inlined, score via postMessage; page tested in headless Chrome, not yet on a device) |
 | Audio preview | Web Audio synth | WAV rendered in core, played with expo-audio (builds; not run on a device) |
 | .mid / MusicXML / .txt export | download | share sheet (untested) |
 

@@ -6,12 +6,14 @@
     "apps/*"
   ],
   "scripts": {
+    "postinstall": "node scripts/gen-notation-html.mjs",
     "test": "npm run test -w @guitar-tabs/core && npm run test -w @guitar-tabs/library",
     "typecheck": "npm run typecheck -w @guitar-tabs/core && npm run typecheck -w @guitar-tabs/library && npm run typecheck -w app",
     "web:export": "npm run export:web -w app",
     "build": "npm run export:web -w app",
     "smoke": "node scripts/web-smoke.mjs",
-    "test:sql": "node scripts/check-migration.mjs"
+    "test:sql": "node scripts/check-migration.mjs",
+    "smoke:notation": "node scripts/notation-html-smoke.mjs"
   },
   "engines": {
     "node": ">=26"
