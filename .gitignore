@@ -28,3 +28,4 @@ coverage/
 keystore.properties
 *.pfx
 *.tsbuildinfo
+smoke-*.png

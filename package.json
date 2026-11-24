@@ -9,10 +9,16 @@
     "test": "npm run test -w @guitar-tabs/core && npm run test -w @guitar-tabs/library",
     "typecheck": "npm run typecheck -w @guitar-tabs/core && npm run typecheck -w @guitar-tabs/library && npm run typecheck -w app",
     "web:export": "npm run export:web -w app",
-    "build": "npm run export:web -w app"
+    "build": "npm run export:web -w app",
+    "smoke": "node scripts/web-smoke.mjs",
+    "test:sql": "node scripts/check-migration.mjs"
   },
   "engines": {
     "node": ">=26"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
+    "puppeteer-core": "^25.18.1"
+  }
 }

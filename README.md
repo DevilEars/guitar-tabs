@@ -7,17 +7,32 @@ One Expo (React Native + react-native-web) app for web and Android, with all mus
 UI-free TypeScript package.
 
 ```
-packages/core   @guitar-tabs/core: tab parser/formatter, tab <-> notation, fingering, MusicXML, MIDI (Vitest)
-apps/app        Expo app (web + Android)
-scripts/        web smoke test (headless Chrome)
+packages/core      @guitar-tabs/core: tab parser/formatter, tab <-> notation, fingering, MusicXML, MIDI (Vitest)
+packages/library   @guitar-tabs/library: local-first tab repository + last-write-wins sync engine (Vitest)
+apps/app           Expo app (web + Android): tab library, editor with autosave, account/sync screen
+supabase/          Postgres migration (tabs table + Row Level Security)
+docs/              supabase-setup.md: how to turn on sign-in and sync
+scripts/           web smoke test (headless Chrome), migration/RLS check (PGlite)
 ```
+
+## Tab library and sync
+
+- Tabs are saved on the device first (AsyncStorage: localStorage on web, SQLite-backed storage on Android), so the
+  app works signed out and offline. The editor autosaves ~0.7 s after you stop typing (Saving… / Saved / Offline).
+- Library: new, open, rename, duplicate, delete (with confirm), search; import `.txt` tab or MusicXML; export
+  `.txt`, `.mid`, MusicXML; JSON backup / restore of all tabs.
+- Sign-in and cross-device sync use Supabase (email + password or magic link). Without
+  `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` the app runs in local-only mode.
+  Setup: [docs/supabase-setup.md](docs/supabase-setup.md).
 
 ## Commands
 
 ```bash
 npm install
-npm test                                   # core unit tests (Vitest)
-npm run typecheck                          # core + app
+npm test                                   # core + library unit tests (Vitest)
+npm run typecheck                          # core + library + app
+npm run test:sql                           # migration + RLS check on in-process Postgres
+npm run build && npm run smoke             # web export + headless-Chrome smoke test (local mode)
 cd apps/app && npx expo start --web        # dev server
 cd apps/app && npx expo export --platform web   # static web build in apps/app/dist
 ```
@@ -60,10 +75,12 @@ are dropped with a warning. `respectHints` keeps string/fret positions carried f
 
 | Feature | Web | Android |
 |---|---|---|
+| Tab library, autosave, import/export, JSON backup | yes | bundles; not run on a device |
+| Sign-in + sync (Supabase) | built; needs a Supabase project | built; needs a project; not run on a device |
 | Tab editor, parse, convert back to tab | yes | bundles; not run on a device |
 | Staff notation (VexFlow) | yes | not yet (shows pitch names as text) |
 | Audio preview | Web Audio synth | not yet |
-| .mid / MusicXML download | yes | not yet |
+| .mid / MusicXML / .txt export | download | share sheet (untested) |
 
 ## License
 

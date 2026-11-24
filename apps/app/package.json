@@ -11,6 +11,7 @@
     "expo-crypto": "~58.0.8",
     "expo-document-picker": "~58.0.5",
     "expo-file-system": "~58.0.14",
+    "expo-linking": "~58.0.17",
     "expo-sharing": "~58.0.23",
     "expo-status-bar": "~58.0.5",
     "react": "19.3.0",
@@ -18,7 +19,8 @@
     "react-native": "0.88.1",
     "react-native-safe-area-context": "~5.11.1",
     "react-native-web": "^0.21.4",
-    "vexflow": "^5.9.0"
+    "vexflow": "^5.9.0",
+    "@guitar-tabs/library": "*"
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
