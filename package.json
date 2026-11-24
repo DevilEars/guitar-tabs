@@ -6,8 +6,8 @@
     "apps/*"
   ],
   "scripts": {
-    "test": "npm run test -w @guitar-tabs/core",
-    "typecheck": "npm run typecheck -w @guitar-tabs/core && npm run typecheck -w app",
+    "test": "npm run test -w @guitar-tabs/core && npm run test -w @guitar-tabs/library",
+    "typecheck": "npm run typecheck -w @guitar-tabs/core && npm run typecheck -w @guitar-tabs/library && npm run typecheck -w app",
     "web:export": "npm run export:web -w app",
     "build": "npm run export:web -w app"
   },
