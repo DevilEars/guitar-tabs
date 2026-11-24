@@ -7,7 +7,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 await page.setViewport({ width: 1100, height: 1400 });
-await page.goto('http://localhost:8765/', { waitUntil: 'networkidle0' });
+await page.goto(process.env.URL ?? 'http://localhost:8765/', { waitUntil: 'networkidle0' });
 await page.waitForSelector('[data-testid="notation"] svg', { timeout: 10000 });
 await new Promise((r) => setTimeout(r, 1000));
 const info = await page.evaluate(() => ({

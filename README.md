@@ -1,6 +1,8 @@
 # Guitar Tabs
 
 Enter guitar tab, see it as standard notation, convert notation back to tab, and hear a preview.
+Live web app: https://devilears.github.io/guitar-tabs/ (deployed by `.github/workflows/pages.yml` on every push to main).
+
 One Expo (React Native + react-native-web) app for web and Android, with all music logic in a
 UI-free TypeScript package.
 
