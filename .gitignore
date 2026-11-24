@@ -24,3 +24,7 @@ coverage/
 .expo-shared/
 .vscode/
 .idea/
+.env.local
+keystore.properties
+*.pfx
+*.tsbuildinfo

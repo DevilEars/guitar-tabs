@@ -64,3 +64,7 @@ are dropped with a warning. `respectHints` keeps string/fret positions carried f
 | Staff notation (VexFlow) | yes | not yet (shows pitch names as text) |
 | Audio preview | Web Audio synth | not yet |
 | .mid / MusicXML download | yes | not yet |
+
+## License
+
+MIT (see `LICENSE`). Security reports: see `SECURITY.md`.
