@@ -79,7 +79,7 @@ are dropped with a warning. `respectHints` keeps string/fret positions carried f
 | Sign-in + sync (Supabase) | built; needs a Supabase project | built; needs a project; not run on a device |
 | Tab editor, parse, convert back to tab | yes | bundles; not run on a device |
 | Staff notation (VexFlow) | yes | not yet (shows pitch names as text) |
-| Audio preview | Web Audio synth | not yet |
+| Audio preview | Web Audio synth | WAV rendered in core, played with expo-audio (builds; not run on a device) |
 | .mid / MusicXML / .txt export | download | share sheet (untested) |
 
 ## License
